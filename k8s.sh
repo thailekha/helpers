@@ -110,18 +110,17 @@ __helm() {
 	fi
 }
 
-__kill_integration_tests_containers() {
-	docker kill robot || echo failed to kill robot container
-	docker kill sbc || echo failed to kill sbc container
+__configure_pod_user() {
+	D_UID=$(id -u)
+	D_GID=$(id -g)
+	D_USER=$(whoami)
+	echo "addgroup --gid $D_GID $D_USER && adduser --uid $D_UID --gid $D_GID --disabled-password --gecos '' $D_USER && runuser -u $D_USER"
 }
 
-run_tests() {
-	cp /etc/hosts systemtests/.
-	cp /root/.kube/config systemtests/.
-	# -v /root/.kube:/.kube always result in an empty folder inside the container
-	timeout 20 docker run --name robot --rm --network host --entrypoint /bin/bash \
-		-v $(pwd)/systemtests:/systemtests kind-local/jre11robot:1.0.0 \
-		-c "cp /systemtests/hosts /etc/hosts && robot integration-tests.robot"
-	trap __kill_integration_tests_containers EXIT
+debug_systemtest_container() {
+	cp $PIPELINE_CLUSTER/kind_kube_config systemtests/config
+	docker run -it --name robot --rm --network host --entrypoint /bin/bash \
+		-v $(pwd)/systemtests:/systemtests "$JRE11ROBOT_IMAGE" \
+		-c "$(__configure_pod_user) -- bash"
 }
 
