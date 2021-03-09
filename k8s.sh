@@ -124,3 +124,11 @@ debug_systemtest_container() {
 		-c "$(__configure_pod_user) -- bash"
 }
 
+run_tests_pipeline() {
+	__run_sbc_container
+	# -v /root/.kube:/.kube always result in an empty folder inside the container
+	timeout 60 docker run --name robot --rm --network host --entrypoint /bin/bash \
+		-v $(pwd)/systemtests:/systemtests "$JRE11ROBOT_IMAGE" \
+		-c "cp /systemtests/hosts /etc/hosts && robot integration-tests.robot"
+	trap __log_and_kill_integration_tests_containers EXIT ERR SIGTERM KILL
+}
