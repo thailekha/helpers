@@ -132,3 +132,8 @@ run_tests_pipeline() {
 		-c "cp /systemtests/hosts /etc/hosts && robot integration-tests.robot"
 	trap __log_and_kill_integration_tests_containers EXIT ERR SIGTERM KILL
 }
+
+__log_and_kill_integration_tests_containers() {
+	docker logs $(docker ps | grep -v 'kindest/node\|CONTAINER' | awk '{ print $1 }')
+	docker kill $(docker ps | grep -v 'kindest/node\|CONTAINER' | awk '{ print $1 }')
+}
